@@ -35,6 +35,5 @@ services:
     volumes:
       - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
       - ./monitoring/grafana/provisioning/datasources/prometheus.yml:/etc/grafana/provisioning/datasources/prometheus.yml
-      - /tmp/ray/session_latest/metrics/grafana/dashboards:/etc/grafana/provisioning/dashboards/ray
     depends_on:
       - prometheus
