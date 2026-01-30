@@ -9,7 +9,8 @@ This project demonstrates a containerized machine learning deployment using Ray 
 - `monitoring/`: Prometheus and Grafana configuration.
 - `serve_model.py`: Core deployment logic with custom metrics and health checks.
 - `serve_config.yaml`: Ray Serve deployment configuration.
-- `docker-compose.yml`: Full-stack orchestration (Ray, Prometheus, Grafana).
+- `locustfile.py`: Load testing script for simulating traffic.
+- `docker-compose.yml`: Full-stack orchestration (Ray, Prometheus, Grafana, Locust).
 
 ## Prerequisites
 
@@ -35,9 +36,9 @@ uv run python query_model.py
 ```
 
 ### 3. Monitor the Application
-- **Ray Dashboard:** [http://localhost:8265](http://localhost:8265) — Monitor cluster status and logs.
-- **Grafana:** [http://localhost:3000](http://localhost:3000) — View system and custom metrics.
-    - *Default login:* `admin` / `admin`
+- **Ray Dashboard:** [http://localhost:8265](http://localhost:8265) — Monitor cluster status, logs, and **integrated Grafana metrics** (under the "Metrics" tab).
+- **Grafana:** [http://localhost:3000](http://localhost:3000) — Dedicated visualization platform.
+    - *Default login:* `admin` / `admin` (Anonymous viewing enabled).
     - *Dashboard:* Navigate to Dashboards -> Ray -> Default Dashboard.
 - **Prometheus:** [http://localhost:9090](http://localhost:9090) — Query raw metrics.
 
@@ -46,7 +47,15 @@ The application exports the following metrics:
 - `ray_iris_predictions_total`: Counter of predictions labeled by Iris species.
 - `ray_iris_prediction_latency_ms`: Histogram of prediction processing time.
 
-## Shutdown
+### 4. Load Testing with Locust
+To simulate traffic and see the metrics in the Ray Dashboard and Grafana:
+1. Open Locust: [http://localhost:8089](http://localhost:8089)
+2. Number of users: 10
+3. Spawn rate: 2
+4. Host: `http://ray-head:8000`
+5. Start swarming.
+
+### 5. Cleanup
 To stop all services and remove containers:
 
 ```bash
