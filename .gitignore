@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.python-version
+.gemini/
+*.log
+# Prometheus data
+data/wal/
+data/chunks_head/
+data/lock
+data/queries.active
+
+# Model/Data artifacts (we want to keep the folders but maybe not the actual binary if it's large, 
+# but for this demo we'll track them or at least the paths)
+!models/
+!data/
+!data/iris_labels.json
+!models/iris_model.pkl

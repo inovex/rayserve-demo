@@ -1,0 +1,12 @@
+# serve_config.yaml
+proxy_location: EveryNode
+http_options:
+  host: 0.0.0.0
+  port: 8000
+applications:
+  - name: iris_app
+    route_prefix: /
+    import_path: serve_model:build_app
+    args:
+      model_path: models/iris_model.pkl
+      label_path: data/iris_labels.json

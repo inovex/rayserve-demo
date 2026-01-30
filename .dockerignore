@@ -1,0 +1,11 @@
+.git
+.venv
+__pycache__
+.python-version
+.gemini
+*.log
+# Ignore Prometheus data
+data/wal
+data/chunks_head
+data/lock
+data/queries.active
