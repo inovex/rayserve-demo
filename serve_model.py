@@ -44,14 +44,33 @@ def train_and_save_model():
     print(f"Labels saved to {label_path}")
     return model_path, label_path
 
-# 2. Define the Ray Serve Deployment
+# 2. Define the Ray Serve Deployments
+
+@serve.deployment
+class DataAuditor:
+    def __init__(self):
+        self.audit_count = metrics.Counter(
+            "data_audits_total",
+            description="Total number of data audits performed."
+        )
+
+    def audit(self, data: Dict) -> str:
+        """Simulates a business logic step: auditing the request data."""
+        self.audit_count.inc()
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        logger.info(f"Auditing data at {timestamp}")
+        # In a real app, this might save to a database or call another service
+        return f"AUDIT-{int(time.time())}"
+
 @serve.deployment
 class IrisPredictor:
-    def __init__(self, model_path: str, label_path: str):
+    def __init__(self, model_path: str, label_path: str, auditor_handle):
         with open(model_path, "rb") as f:
             self.model = pickle.load(f)
         with open(label_path) as f:
             self.label_list = json.load(f)
+        
+        self.auditor_handle = auditor_handle
         
         # Monitoring: Custom metrics
         self.prediction_counter = metrics.Counter(
@@ -72,6 +91,9 @@ class IrisPredictor:
         # Structured logging
         logger.info(f"Processing prediction request: {payload}")
         
+        # Call the second deployment (DataAuditor)
+        audit_id = await self.auditor_handle.audit.remote(payload)
+        
         # Expecting JSON like: {"sepal_length": 1.2, "sepal_width": 1.0, "petal_length": 1.1, "petal_width": 0.9}
         try:
             input_vector = [
@@ -82,7 +104,7 @@ class IrisPredictor:
             ]
         except KeyError as e:
             logger.error(f"Missing key in payload: {e}")
-            return {"error": f"Missing key: {e}"}
+            return {"error": f"Missing key: {e}", "audit_id": audit_id}
         
         prediction = self.model.predict([input_vector])[0]
         label = self.label_list[prediction]
@@ -93,7 +115,11 @@ class IrisPredictor:
         self.prediction_counter.inc(tags={"label": label})
         
         logger.info(f"Prediction result: {label} (latency: {latency_ms:.2f}ms)")
-        return {"prediction": label}
+        return {
+            "prediction": label,
+            "audit_id": audit_id,
+            "message": "Validated by DataAuditor"
+        }
 
     def check_health(self):
         """Custom health check for the deployment."""
@@ -109,7 +135,9 @@ def build_app(args: Dict):
     # Ensure paths exist before binding
     if not os.path.exists(model_path):
         train_and_save_model()
-        
-    return IrisPredictor.bind(model_path, label_path)
+    
+    # Bind the deployments together
+    auditor = DataAuditor.bind()
+    return IrisPredictor.bind(model_path, label_path, auditor)
 
 iris_app = build_app({})
