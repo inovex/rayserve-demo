@@ -46,7 +46,7 @@ def train_and_save_model():
 
 # 2. Define the Ray Serve Deployments
 
-@serve.deployment
+@serve.deployment(ray_actor_options={"num_cpus": 0.2})
 class DataAuditor:
     def __init__(self):
         self.audit_count = metrics.Counter(
@@ -62,7 +62,16 @@ class DataAuditor:
         # In a real app, this might save to a database or call another service
         return f"AUDIT-{int(time.time())}"
 
-@serve.deployment
+@serve.deployment(
+    ray_actor_options={"num_cpus": 0.5},
+    autoscaling_config={
+        "min_replicas": 1,
+        "max_replicas": 10,
+        "target_ongoing_requests": 5,
+    },
+    health_check_period_s=10,
+    health_check_timeout_s=30,
+)
 class IrisPredictor:
     def __init__(self, model_path: str, label_path: str, auditor_handle):
         with open(model_path, "rb") as f:

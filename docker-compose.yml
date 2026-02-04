@@ -47,6 +47,8 @@ services:
     image: locustio/locust
     ports:
       - "8089:8089"
+    environment:
+      - LOCUST_HOST=http://ray-head:8000
     volumes:
       - .:/mnt/locust
     command: -f /mnt/locust/locustfile.py --host http://ray-head:8000
