@@ -4,4 +4,4 @@ providers:
     folder: Ray
     type: file
     options:
-      path: /etc/grafana/provisioning/dashboards/ray
+      path: /var/lib/grafana/dashboards/ray

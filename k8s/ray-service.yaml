@@ -1,0 +1,80 @@
+apiVersion: ray.io/v1
+kind: RayService
+metadata:
+  name: rayserve-demo
+spec:
+  # The time KubeRay waits before determining the service is unhealthy.
+  serviceUnhealthySecondThreshold: 900
+  # The time KubeRay waits before determining the deployment is unhealthy.
+  deploymentUnhealthySecondThreshold: 900
+  serveConfigV2: |
+    applications:
+      - name: iris_app
+        route_prefix: /
+        import_path: serve_model:iris_app
+        deployments:
+          - name: IrisPredictor
+            num_replicas: auto # Use autoscaling_config from the code
+          - name: DataAuditor
+            num_replicas: 1
+
+  rayClusterConfig:
+    rayVersion: '2.53.0'
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+        metrics-export-port: '8080'
+      template:
+        metadata:
+          labels:
+            ray.io/node-type: head
+            app: rayserve-demo-head
+        spec:
+          containers:
+            - name: ray-head
+              image: rayserve-demo:latest
+              imagePullPolicy: Never
+              env:
+                - name: RAY_PROMETHEUS_HOST
+                  value: "http://prometheus:9090"
+                - name: RAY_GRAFANA_HOST
+                  value: "http://grafana:3000"
+                - name: RAY_GRAFANA_IFRAME_HOST
+                  value: "http://localhost:3000"
+              resources:
+                limits:
+                  cpu: "1"
+                  memory: "2Gi"
+                requests:
+                  cpu: "1"
+                  memory: "1Gi"
+              ports:
+                - containerPort: 6379
+                  name: gcs-server
+                - containerPort: 8265
+                  name: dashboard
+                - containerPort: 10001
+                  name: client
+                - containerPort: 8000
+                  name: serve
+                - containerPort: 8080
+                  name: metrics
+    workerGroupSpecs:
+      - replicas: 1
+        minReplicas: 1
+        maxReplicas: 3
+        groupName: small-group
+        rayStartParams: {}
+        template:
+          spec:
+            containers:
+              - name: ray-worker
+                image: rayserve-demo:latest
+                imagePullPolicy: Never
+                resources:
+                  limits:
+                    cpu: "1"
+                    memory: "2Gi"
+                  requests:
+                    cpu: "1"
+                    memory: "1Gi"

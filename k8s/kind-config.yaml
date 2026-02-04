@@ -1,0 +1,17 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30000
+    hostPort: 8000
+    listenAddress: "0.0.0.0" # Serve
+  - containerPort: 30265
+    hostPort: 8265
+    listenAddress: "0.0.0.0" # Dashboard
+  - containerPort: 30080
+    hostPort: 3000
+    listenAddress: "0.0.0.0" # Grafana
+  - containerPort: 30089
+    hostPort: 8089
+    listenAddress: "0.0.0.0" # Locust

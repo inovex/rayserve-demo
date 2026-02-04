@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: locust-script
+data:
+  locustfile.py: |
+    from locust import HttpUser, task, between
+    import random
+
+    class IrisUser(HttpUser):
+        wait_time = between(0.1, 0.5)
+
+        @task
+        def predict_iris(self):
+            sample_payload = {
+                "sepal_length": random.uniform(4.0, 8.0),
+                "sepal_width": random.uniform(2.0, 4.5),
+                "petal_length": random.uniform(1.0, 7.0),
+                "petal_width": random.uniform(0.1, 2.5)
+            }
+            
+            self.client.post("/", json=sample_payload)
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: locust
+  template:
+    metadata:
+      labels:
+        app: locust
+    spec:
+      containers:
+        - name: locust
+          image: locustio/locust
+          ports:
+            - containerPort: 8089
+          volumeMounts:
+            - name: locust-script
+              mountPath: /mnt/locust
+          command: ["locust"]
+          args: ["-f", "/mnt/locust/locustfile.py", "--host", "http://rayserve-demo-head-svc:8000"]
+      volumes:
+        - name: locust-script
+          configMap:
+            name: locust-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust
+spec:
+  type: NodePort
+  selector:
+    app: locust
+  ports:
+    - port: 8089
+      targetPort: 8089
+      nodePort: 30089
