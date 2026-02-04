@@ -2,6 +2,7 @@ from locust import HttpUser, task, between
 import random
 
 class IrisUser(HttpUser):
+    host = "http://ray-head:8000"
     wait_time = between(0.1, 0.5)  # Simulate aggressive traffic
 
     @task
