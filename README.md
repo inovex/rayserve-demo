@@ -49,7 +49,7 @@ Access the various dashboards exposed via localhost ports:
 - **Ray Dashboard:** [http://localhost:8265](http://localhost:8265) — Cluster status and logs.
 - **Grafana:** [http://localhost:3000](http://localhost:3000) — Visualization.
     - Navigate to Dashboards -> Ray -> Serve Deployment Dashboard.
-- **Prometheus:** `kubectl port-forward svc/prometheus 9090:9090` then [http://localhost:9090](http://localhost:9090) (Prometheus is not exposed by default on a static node port to save ports, but you can port-forward).
+- **Prometheus:** `kubectl port-forward svc/prometheus-kube-prometheus-prometheus -n prometheus-system 9090:9090` then [http://localhost:9090](http://localhost:9090) (Prometheus is not exposed by default on a static node port to save ports, but you can port-forward).
 
 ### 4. Load Testing with Locust
 1. Open Locust: [http://localhost:8089](http://localhost:8089)
