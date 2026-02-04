@@ -61,6 +61,8 @@ spec:
                   name: metrics
                 - containerPort: 8081
                   name: as-metrics
+                - containerPort: 52365
+                  name: dash-metrics
     workerGroupSpecs:
       - replicas: 1
         minReplicas: 1
@@ -68,6 +70,10 @@ spec:
         groupName: small-group
         rayStartParams: {}
         template:
+          metadata:
+            labels:
+              ray.io/node-type: worker
+              app: rayserve-demo-worker
           spec:
             containers:
               - name: ray-worker
@@ -80,3 +86,10 @@ spec:
                   requests:
                     cpu: "1"
                     memory: "1Gi"
+                ports:
+                  - containerPort: 8080
+                    name: metrics
+                  - containerPort: 8081
+                    name: as-metrics
+                  - containerPort: 52365
+                    name: dash-metrics
