@@ -47,6 +47,10 @@ echo "Applying Kubernetes manifests..."
 # Note: k8s/monitoring/prometheus.yaml and grafana.yaml are superseded by Helm chart
 kubectl apply -f k8s/ray-service.yaml
 kubectl apply -f k8s/services.yaml
+
+# Create ConfigMap from the local locustfile.py
+kubectl create configmap locust-script --from-file=locustfile.py --dry-run=client -o yaml | kubectl apply -f -
+
 kubectl apply -f k8s/locust.yaml
 
 echo "Waiting for Ray head pod to be created..."
