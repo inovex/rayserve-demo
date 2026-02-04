@@ -21,10 +21,21 @@ fi
 # Switch context
 kubectl cluster-info --context kind-$CLUSTER_NAME
 
+echo "Installing Prometheus Stack and Monitors..."
+chmod +x ./prom_install.sh
+./prom_install.sh --auto-load-dashboard true
+
 echo "Installing KubeRay Operator..."
 helm repo add kuberay https://ray-project.github.io/kuberay-helm/
 helm repo update
-helm upgrade --install kuberay-operator kuberay/kuberay-operator --version 1.1.0 --create-namespace --namespace ray-system
+helm upgrade --install kuberay-operator kuberay/kuberay-operator \
+    --version 1.5.1 \
+    --create-namespace \
+    --namespace ray-system \
+    --set metrics.serviceMonitor.enabled=true \
+    --set metrics.serviceMonitor.selector.release=prometheus
+
+
 
 echo "Building Docker image..."
 docker build -t $IMAGE_NAME .
@@ -32,31 +43,21 @@ docker build -t $IMAGE_NAME .
 echo "Loading image into Kind..."
 kind load docker-image $IMAGE_NAME --name $CLUSTER_NAME
 
-echo "Creating ConfigMaps..."
-
-# Helper function to create configmap from file/dir with deletion first
-create_cm() {
-    local name=$1
-    local from=$2
-    kubectl delete configmap "$name" --ignore-not-found
-    kubectl create configmap "$name" --from-file="$from"
-}
-
-create_cm "grafana-datasources" "monitoring/grafana/provisioning/datasources/prometheus.yml"
-create_cm "grafana-dashboards-prov" "monitoring/grafana/provisioning/dashboards/ray.yml"
-create_cm "grafana-dashboards-json" "monitoring/grafana/provisioning/dashboards/ray"
-
 echo "Applying Kubernetes manifests..."
-kubectl apply -f k8s/monitoring/prometheus.yaml
-kubectl apply -f k8s/monitoring/grafana.yaml
+# Note: k8s/monitoring/prometheus.yaml and grafana.yaml are superseded by Helm chart
 kubectl apply -f k8s/ray-service.yaml
 kubectl apply -f k8s/services.yaml
 kubectl apply -f k8s/locust.yaml
 
+echo "Waiting for Ray head pod to be created..."
+until kubectl get pods -l ray.io/node-type=head 2>/dev/null | grep -q "head"; do
+    sleep 2
+done
+
 echo "Waiting for pods to be ready..."
-kubectl wait --for=condition=Ready pod -l ray.io/node-type=head --timeout=300s || echo "Waiting for head pod timed out, check status with kubectl get pods"
+kubectl wait --for=condition=Ready pod -l ray.io/node-type=head --timeout=300s
 
 echo "Access Ray Dashboard at: http://localhost:8265"
 echo "Access Ray Serve at: http://localhost:8000"
-echo "Access Grafana at: http://localhost:3000"
+echo "Access Grafana at: http://localhost:3000 (Anonymous Admin access enabled)"
 echo "Access Locust at: http://localhost:8089"
