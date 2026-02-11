@@ -10,6 +10,7 @@ from sklearn.datasets import load_iris
 from sklearn.ensemble import GradientBoostingClassifier
 from ray import serve
 from ray.serve import metrics
+from ray.serve import Application
 
 logger = logging.getLogger("ray.serve")
 
@@ -64,13 +65,15 @@ class DataAuditor:
 
 @serve.deployment(
     ray_actor_options={"num_cpus": 0.5},
+    max_ongoing_requests=int(os.getenv("MAX_ONGOING_REQUESTS", 1)),
     autoscaling_config={
-        "min_replicas": 1,
-        "max_replicas": 10,
-        "target_ongoing_requests": 5,
+        "initial_replicas": int(os.getenv("INITIAL_REPLICAS", 1)),
+        "min_replicas": int(os.getenv("MIN_REPLICAS", 1)),
+        "max_replicas": int(os.getenv("MAX_REPLICAS", 3)),
+        "target_ongoing_requests": int(os.getenv("TARGET_ONGOING_REQUESTS", 1)),
     },
-    health_check_period_s=10,
-    health_check_timeout_s=30,
+    health_check_period_s=int(os.getenv("HEALTH_PERIOD_S", 10)),
+    health_check_timeout_s=int(os.getenv("HEALTH_TIMEOUT_S", 30)),
 )
 class IrisPredictor:
     def __init__(self, model_path: str, label_path: str, auditor_handle):
@@ -137,7 +140,7 @@ class IrisPredictor:
             raise RuntimeError("Model is not loaded.")
         # logger.info("Health check passed.")
 
-def build_app(args: Dict):
+def build_app(args: Dict) -> Application:
     model_path = args.get("model_path", "models/iris_model.pkl")
     label_path = args.get("label_path", "data/iris_labels.json")
     

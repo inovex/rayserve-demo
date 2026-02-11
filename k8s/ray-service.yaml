@@ -9,14 +9,13 @@ spec:
   deploymentUnhealthySecondThreshold: 900
   serveConfigV2: |
     applications:
-      - name: iris_app
-        route_prefix: /
-        import_path: serve_model:iris_app
-        deployments:
-          - name: IrisPredictor
-            num_replicas: auto # Use autoscaling_config from the code
-          - name: DataAuditor
-            num_replicas: 1
+    - name: iris_app
+      route_prefix: /
+      import_path: serve_model:iris_app
+      runtime_env: {}
+      deployments:
+      - name: DataAuditor
+      - name: IrisPredictor
 
   rayClusterConfig:
     rayVersion: '2.53.0'
@@ -41,6 +40,20 @@ spec:
                   value: "http://prometheus-grafana.prometheus-system.svc:80"
                 - name: RAY_GRAFANA_IFRAME_HOST
                   value: "http://127.0.0.1:3000"
+                - name: MAX_ONGOING_REQUESTS
+                  value: "2"
+                - name: INITIAL_REPLICAS
+                  value: "1"
+                - name: MIN_REPLICAS
+                  value: "1"
+                - name: MAX_REPLICAS
+                  value: "3"
+                - name: TARGET_ONGOING_REQUESTS
+                  value: "1"
+                - name: HEALTH_PERIOD_S
+                  value: "10"
+                - name: HEALTH_TIMEOUT_S
+                  value: "30"
               resources:
                 limits:
                   cpu: "1"
