@@ -1,65 +1,82 @@
-# Ray Serve Iris Demo on Kubernetes (Kind)
+# Ray Serve Demo
 
-This project demonstrates a production-like machine learning deployment using Ray Serve on Kubernetes (via Kind), featuring a Scikit-learn Iris classifier, custom Prometheus metrics, and pre-configured Grafana dashboards.
+
+<img src="github-qr.png" alt="GitHub QR" width="250" />
+
+
+This project demonstrates a Kubernetes-based machine learning deployment using Ray Serve on a local `kind` cluster, featuring a Scikit-learn Iris classifier, custom Prometheus metrics, and pre-configured Grafana dashboards.
 
 ## Project Structure
 
-- `k8s/`: Kubernetes manifests and configurations.
 - `models/`: Serialized model artifacts (`.pkl`).
 - `data/`: Model metadata and labels (`.json`).
-- `monitoring/`: Prometheus and Grafana configuration.
+- `monitoring/`: Grafana provisioning and dashboard definitions.
+- `k8s/`: Kubernetes manifests (`RayService`, services, Locust, monitoring overrides).
 - `serve_model.py`: Core deployment logic with custom metrics and health checks.
-- `serve_config.yaml`: Ray Serve deployment configuration.
-- `locustfile.py`: Load testing script.
-- `setup_k8s.sh`: One-click script to set up the environment.
+- `generated_config.yaml`: Generated Ray Serve deployment configuration.
+- `locustfile.py`: Load testing script for simulating traffic.
+- `setup_k8s.sh`: One-command local cluster setup and deployment.
+- `teardown_k8s.sh`: Deletes the local `kind` cluster.
 
 ## Prerequisites
 
 - [Docker](https://www.docker.com/)
-- [Kind](https://kind.sigs.k8s.io/)
+- [kind](https://kind.sigs.k8s.io/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Helm](https://helm.sh/)
-- [uv](https://github.com/astral-sh/uv) (for running the local test client)
+- [uv](https://github.com/astral-sh/uv) (for running the local test client).
 
 ## Getting Started
 
-### 1. Setup the Cluster
-Run the setup script to create the Kind cluster, install the KubeRay operator, build the image, and deploy all services:
+### 1. Create Cluster and Deploy
+This will create (or reuse) the `rayserve-demo` `kind` cluster, install Prometheus/Grafana and KubeRay, build/load the app image, and apply all manifests.
 
 ```bash
 bash setup_k8s.sh
 ```
 
-Wait a few minutes for all pods to be ready. You can check the status with:
+Wait until pods are ready:
+
 ```bash
-kubectl get pods
+kubectl get pods -A
 ```
 
 ### 2. Query the Model
-Once the system is up, you can query the model using the provided python script:
+Use the provided test client to send a prediction request:
 
 ```bash
 uv run python query_model.py
 ```
-*Note: This works because `setup_k8s.sh` configures Kind to map port 8000 on localhost to the Ray Serve service.*
 
 ### 3. Monitor the Application
-Access the various dashboards exposed via localhost ports:
+- **Ray Dashboard:** [http://localhost:8265](http://localhost:8265) — Monitor cluster status, logs, and **integrated Grafana metrics** (under the "Metrics" tab).
+- **Grafana:** [http://localhost:3000](http://localhost:3000) — Dedicated visualization platform.
+    - *Default login:* `admin` / `admin` (Anonymous viewing enabled).
+    - *Dashboards:* Navigate to Dashboards -> Ray.
+- **Locust UI:** [http://localhost:8089](http://localhost:8089)
 
-- **Ray Dashboard:** [http://localhost:8265](http://localhost:8265) — Cluster status and logs.
-- **Grafana:** [http://localhost:3000](http://localhost:3000) — Visualization.
-    - Navigate to Dashboards -> Ray -> Serve Deployment Dashboard.
-- **Prometheus:** `kubectl port-forward svc/prometheus-kube-prometheus-prometheus -n prometheus-system 9090:9090` then [http://localhost:9090](http://localhost:9090) (Prometheus is not exposed by default on a static node port to save ports, but you can port-forward).
+### 4. Access Endpoints
+`kind` maps NodePorts to localhost in `k8s/kind-config.yaml`:
 
-### 4. Load Testing with Locust
+- Ray Serve API: [http://localhost:8000](http://localhost:8000)
+- Ray Dashboard: [http://localhost:8265](http://localhost:8265)
+- Grafana: [http://localhost:3000](http://localhost:3000)
+- Locust: [http://localhost:8089](http://localhost:8089)
+
+## Custom Metrics
+The application exports the following metrics:
+- `ray_iris_prediction_latency_ms`: Histogram of prediction processing time.
+
+### 5. Load Testing with Locust
+To simulate traffic and see metrics in Ray Dashboard and Grafana:
 1. Open Locust: [http://localhost:8089](http://localhost:8089)
 2. Number of users: 10
 3. Spawn rate: 2
-4. Host: `http://rayserve-demo-head-svc:8000` (This is the internal K8s DNS name, already pre-filled in the deployment).
+4. Host: `http://localhost:8000`
 5. Start swarming.
 
-### 5. Cleanup
-To delete the cluster:
+### 6. Cleanup
+Delete the local `kind` cluster:
 
 ```bash
 bash teardown_k8s.sh
