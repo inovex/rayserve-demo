@@ -23,6 +23,7 @@ spec:
       rayStartParams:
         dashboard-host: '0.0.0.0'
         metrics-export-port: '8080'
+        num-cpus: "0" # Prevents work from being scheduled on the head node
       template:
         metadata:
           labels:
@@ -60,7 +61,7 @@ spec:
                   memory: "2Gi"
                 requests:
                   cpu: "1"
-                  memory: "1Gi"
+                  memory: "2Gi"
               ports:
                 - containerPort: 6379
                   name: gcs-server
@@ -98,7 +99,7 @@ spec:
                     memory: "2Gi"
                   requests:
                     cpu: "1"
-                    memory: "1Gi"
+                    memory: "2Gi"
                 ports:
                   - containerPort: 8080
                     name: metrics
