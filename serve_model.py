@@ -49,22 +49,15 @@ def train_and_save_model():
 
 @serve.deployment(ray_actor_options={"num_cpus": 0.2})
 class DataAuditor:
-    def __init__(self):
-        self.audit_count = metrics.Counter(
-            "data_audits_total",
-            description="Total number of data audits performed."
-        )
-
     def audit(self, data: Dict) -> str:
         """Simulates a business logic step: auditing the request data."""
-        self.audit_count.inc()
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         logger.info(f"Auditing data at {timestamp}")
         # In a real app, this might save to a database or call another service
         return f"AUDIT-{int(time.time())}"
 
 @serve.deployment(
-    ray_actor_options={"num_cpus": 0.5},
+    ray_actor_options={"num_cpus": 0.3},
     max_ongoing_requests=int(os.getenv("MAX_ONGOING_REQUESTS", 1)),
     autoscaling_config={
         "initial_replicas": int(os.getenv("INITIAL_REPLICAS", 1)),
@@ -85,15 +78,10 @@ class IrisPredictor:
         self.auditor_handle = auditor_handle
         
         # Monitoring: Custom metrics
-        self.prediction_counter = metrics.Counter(
-            "iris_predictions_total",
-            description="Total number of iris predictions.",
-            tag_keys=("label",)
-        )
         self.latency_histogram = metrics.Histogram(
             "iris_prediction_latency_ms",
             description="Latency of iris predictions in milliseconds.",
-            boundaries=[0.1, 0.5, 1, 2, 5, 10]
+            boundaries=[1, 2, 5, 10, 20, 50, 100]
         )
 
     async def __call__(self, starlette_request: Request) -> Dict:
@@ -124,7 +112,6 @@ class IrisPredictor:
         # Record metrics
         latency_ms = (time.time() - start_time) * 1000
         self.latency_histogram.observe(latency_ms)
-        self.prediction_counter.inc(tags={"label": label})
         
         logger.info(f"Prediction result: {label} (latency: {latency_ms:.2f}ms)")
         return {
