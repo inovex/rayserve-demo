@@ -2,6 +2,8 @@
 
 This project demonstrates a containerized machine learning deployment using Ray Serve, featuring a Scikit-learn Iris classifier, custom Prometheus metrics, and a pre-configured Grafana dashboard.
 
+The main branch uses a simpler docker compose setup. **See the `kind` branch for a kind-based kubernetes demo that is closer to a production setup.**
+
 ## Project Structure
 
 - `models/`: Serialized model artifacts (`.pkl`).
